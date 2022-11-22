@@ -36,7 +36,6 @@ You may optionally specify any of the following station-only settings:
   "teacher": true,
   "student": true
 }
-}
 ```
 
 the `server` contains the default terminal-server, and via execute it is possible to define a subject on which this module will listen for code to be executed. The following view is only visible on station-mode.

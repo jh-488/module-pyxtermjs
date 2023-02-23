@@ -213,7 +213,7 @@
             subject,
             body
           }) => {
-            // console.log("Got new message: ", subject, body)
+            //console.log("User got new message: ", subject, body)
             switch (subject) {
               case "pty-output": {
                 terminal.write(body);
@@ -222,7 +222,7 @@
               case "connect": {
                 if (body === "true") {
                   self.status = true
-                } else if (body === "false" ){
+                } else if (body === "false") {
                   self.status = false
                 } else {
                   self.status = null
@@ -239,14 +239,21 @@
 
         connectStation() {
 
-          socket = io.connect(this.server);
+          socket = io.connect(this.server, {
+            reconnectionAttempts: Infinity
+          });
+          
+          socket.on('connect_error', (error) => {
+            console.log('Connection error:', error.message);
+          })
+          
           const self = this
-
           socket.on("pty-output", function (data) {
             // console.log("new output received from server:", data.output);
             terminal.write(data.output);
-            if (Edrys.module)
+            if (Edrys.module) {
               Edrys.sendMessage("pty-output", data.output)
+            }
             lastData = data.output
           });
 
@@ -318,19 +325,21 @@
                 body,
                 module
               }) => {
-                //console.log("Got new message: ", from, subject, body, module, Edrys.module.stationConfig.execute)
+                // console.log("Got new message: ", from, subject, body, module, Edrys.module.stationConfig?.execute)
 
-                if (subject === Edrys.module.stationConfig.execute) {
+                if (subject === (Edrys.module.stationConfig?.execute || "execute")) {
                   try {
                     let data = JSON.parse(body)
 
                     if (data.file) {
                       self.store(data.file)
                       self.execute('')
-                      
+
                       return
                     }
-                  } catch (e) {}
+                  } catch (e) {
+                    console.warn("Error, could not execute command:", e.message)
+                  }
 
                   self.execute(body)
                 }
@@ -345,12 +354,14 @@
     Edrys.onReady(() => {
       console.log("Module is loaded!")
 
+      Edrys.onUpdate((e) => console.warn("XXX Something has changed in the class", e));
+
       if (Edrys.role === "station") {
         app.isStation = true
-        app.server = Edrys.module.stationConfig.server || DEFAULT_SERVER
-        app.script = Edrys.module.stationConfig.script || DEFAULT_SCRIPT
-        app.enable.student = Edrys.module.stationConfig.enable?.student || false
-        app.enable.teacher = Edrys.module.stationConfig.enable?.teacher || false
+        app.server = Edrys.module.stationConfig?.server || DEFAULT_SERVER
+        app.script = Edrys.module.stationConfig?.script || DEFAULT_SCRIPT
+        app.enable.student = Edrys.module.stationConfig?.enable?.student || false
+        app.enable.teacher = Edrys.module.stationConfig?.enable?.teacher || false
 
         app.connectStation()
         Edrys.sendMessage("join", null)

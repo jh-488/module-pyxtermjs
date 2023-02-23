@@ -50,9 +50,11 @@ def read_and_forward_pty_output():
 def index():
     return render_template("index.html")
 
+
 @app.route("/dir")
 def direct():
     return render_template("direct.html")
+
 
 @socketio.on("pty-input", namespace="/pty")
 def pty_input(data):
@@ -146,8 +148,9 @@ def main():
     if args.version:
         print(__version__)
         exit(0)
+
     app.config["cmd"] = [args.command or os.environ.get(
-        "PYXTERM_CMD")] + shlex.split(args.cmd_args or os.environ.get("PYXTERM_CMD_ARGS"))
+        "PYXTERM_CMD")] + shlex.split(args.cmd_args or os.environ.get("PYXTERM_CMD_ARGS") or "")
 
     app.config["useTmp"] = args.tmp or os.environ.get("PYXTERM_USE_TMP")
 

@@ -124,10 +124,10 @@
       const DEFAULT_SERVER = 'http://localhost:5000/pty'
       const DEFAULT_SCRIPT = 'echo $CODE | base64 --decode'
 
-      function fitToScreen() {
+      function fitToScreen(dimensions) {
         if (fit && terminal) {
           fit.fit()
-          const dims = {
+          const dims = dimensions || {
             cols: terminal.cols,
             rows: terminal.rows,
           }
@@ -135,6 +135,10 @@
           // console.log("sending new dimensions to server's pty", dims);
           if (socket) {
             socket.emit('resize', dims)
+          } else {
+            try {
+              Edrys.sendMessage('resize', JSON.stringify(dims))
+            } catch (e) {}
           }
         }
       }
@@ -251,7 +255,7 @@
             const tx = throttle((data) => {
               //console.log('send input to station:', data)
               Edrys.sendMessage('input_' + Edrys.role, data)
-            }, 300)
+            }, 100)
 
             terminal.onData((data) => {
               //console.log("key pressed in browser:", data);
@@ -274,7 +278,7 @@
             const self = this
 
             Edrys.onMessage(({ from, subject, body }) => {
-              //console.log("User got new message: ", subject, body)
+              //console.log('User got new message: ', subject, body)
               switch (subject) {
                 case 'pty-output': {
                   terminal.write(body)
@@ -337,7 +341,7 @@
 
             if (Edrys.module) {
               Edrys.onMessage(({ from, subject, body }) => {
-                console.log('Got new message: ', from, subject, body)
+                //console.log('Got new message: ', from, subject, body)
                 switch (subject) {
                   case 'input_teacher': {
                     if (self.enable.teacher) {
@@ -364,6 +368,12 @@
                   case 'join': {
                     Edrys.sendMessage('connect', JSON.stringify(self.status))
                     Edrys.sendMessage('pty-output', lastData)
+                    break
+                  }
+
+                  case 'resize': {
+                    let data = JSON.parse(body)
+                    fitToScreen(data)
                     break
                   }
                   /*default: {
@@ -404,9 +414,9 @@
       Edrys.onReady(() => {
         console.log('Module is loaded!')
 
-        Edrys.onUpdate((e) =>
-          console.warn('XXX Something has changed in the class', e)
-        )
+        //Edrys.onUpdate((e) =>
+        //  console.warn('Something has changed in the class', e)
+        //)
 
         if (Edrys.role === 'station') {
           app.isStation = true

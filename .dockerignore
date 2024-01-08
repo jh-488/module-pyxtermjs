@@ -5,3 +5,4 @@ Dockerfile
 *.gif
 *.png
 docker
+docs

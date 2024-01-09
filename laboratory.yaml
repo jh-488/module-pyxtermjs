@@ -24,7 +24,7 @@ meta:
 
     <hr>
 
-    <code>docker run -itd -p 5000:5000 crosslab/edrys_pyxtermjs_arduino
+    <code>docker run -it -p 5000:5000 crosslab/edrys_pyxtermjs_arduino
     --device=/dev/ttyACM0:/dev/ttyACM0 --device-cgroup-rule='c 166:* rmv'
     --device-cgroup-rule='c 189:* rmv'</code>
   selfAssign: true

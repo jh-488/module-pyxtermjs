@@ -5,7 +5,7 @@ It is based on [pyxterm.js](https://github.com/cs01/pyxtermjs) by Chad Smith.
 
 ![screenshot](./pyxtermjs.gif)
 
-## Usage 
+## Usage
 
 To use this URL to add the module to your class:
 
@@ -35,6 +35,7 @@ You may optionally specify any of the following station-only settings:
 , "enable": {
   "teacher": true,
   "student": true
+  }
 }
 ```
 
@@ -71,24 +72,8 @@ optional arguments:
 
 To enable an even more secure usage, you can also start and or modify the included Dockerfile.
 
-Build it via:
+Build and run it via:
 
 ``` bash
-$ docker build . -t arduino
+$ docker-compose up
 ```
-
-And run it via:
-
-``` bash
-docker run -it -p 5000:5000 arduino
-```
-
-If you want to let the user flash or work with Arduinos, as we want, you can use the following option:
-
-```
-chmod a+rw /dev/ttyACM0
-docker run -it -p 5000:5000 --device=/dev/ttyACM0 arduino
-
-```
-
-We have defined a user with reduced root access, that is why we have to allow others to read and write on `/dev/ttyACM0` before the internal user can flash the device.

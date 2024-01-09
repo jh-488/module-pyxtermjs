@@ -1,0 +1,47 @@
+id: 79sFHo6ONB1S25cTN7emXmOibQ2HNWb2G9X3Xn2x
+createdBy: Mj92OSQdrbcE
+dateCreated: 1704715062608
+name: PyTermJS - Ubuntu Terminal
+meta:
+  logo: >-
+    https://repository-images.githubusercontent.com/487803615/83e1b148-5e81-4733-8ffc-e9ac5340547e
+  description: >-
+    This classroom provides base implementation for running a terminal-server on
+    Ubuntu 22.04. Make sure that one participant shares a pytermjs session
+    directly or from a docker file as described <a
+    href="https://github.com/Cross-Lab-Project/edrys_module-pyxtermjs">here</a>
+    or run:
+
+    <br><br>
+
+    <code style="margin-bottom: 5px">docker run -it -p 5000:5000
+    crosslab/edrys_pyxtermjs</code>
+
+    <hr>
+
+    <code>docker run -it -p 5000:5000
+    crosslab/edrys_pyxtermjs_development</code>
+
+    <hr>
+
+    <code>docker run -itd -p 5000:5000 crosslab/edrys_pyxtermjs_arduino
+    --device=/dev/ttyACM0:/dev/ttyACM0 --device-cgroup-rule='c 166:* rmv'
+    --device-cgroup-rule='c 189:* rmv'</code>
+  selfAssign: true
+  defaultNumberOfRooms: 0
+members:
+  teacher: []
+  student: []
+modules:
+  - url: https://cross-lab-project.github.io/edrys_module-pyxtermjs/index.html
+    config: ''
+    studentConfig: ''
+    teacherConfig: ''
+    stationConfig:
+      server: http://localhost:5000/pty
+      enable:
+        teacher: true
+        student: true
+    showInCustom: station
+    width: full
+    height: medium

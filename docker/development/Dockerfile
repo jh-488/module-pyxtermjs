@@ -3,15 +3,17 @@ FROM crosslab/edrys_pyxtermjs:latest
 # change the user, so that the packages can be installed on top of edrys_pyxtermjs
 USER root
 
-RUN apt-get update && apt-get install -y apt-transport-https
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y apt-transport-https
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-mcs
 
-RUN apt-get install -y golang-go
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y g++ make
 
-RUN apt-get install -y rustc
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y golang-go
 
-RUN apt-get install -y default-jdk
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y rustc
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y default-jdk
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y r-base r-base-dev r-recommended \
     r-cran-car \
@@ -38,15 +40,15 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y r-base r-base-dev r-recomm
     r-cran-xts \ 
     r-cran-zoo
 
-RUN apt-get install -y julia
+# RUN DEBIAN_FRONTEND=noninteractive apt-get install -y julia
 
-RUN apt-get install -y ghc
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ghc
 
-RUN apt-get install -y clojure
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y clojure
 
-RUN apt-get install -y lua5.3
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y lua5.3
 
-RUN apt-get install nodejs
+RUN DEBIAN_FRONTEND=noninteractive apt-get install nodejs
 
 # get back to the default appuser
 USER appuser

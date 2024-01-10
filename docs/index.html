@@ -198,7 +198,8 @@
           },
 
           execute(code) {
-            let program = this.script
+            // add two time ctrl+c to stop a possible execution
+            let program = '\u0003\u0003\n' + this.script
 
             if (!program.endsWith('\n')) {
               program += '\n'
@@ -384,7 +385,7 @@
 
             if (Edrys.module) {
               Edrys.onMessage(({ from, subject, body }) => {
-                //console.log('Got new message: ', from, subject, body)
+                // console.log('Got new message: ', from, subject, JSON.stringify(body))
                 switch (subject) {
                   case 'input_teacher': {
                     if (self.enable.teacher) {

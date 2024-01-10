@@ -239,6 +239,8 @@
             })
 
             // https://github.com/xtermjs/xterm.js/issues/2941
+            terminal.attachCustomKeyEventHandler(customKeyEventHandler)
+
             fit = new FitAddon.FitAddon()
             terminal.loadAddon(fit)
             terminal.loadAddon(new WebLinksAddon.WebLinksAddon())
@@ -251,6 +253,10 @@
             fit.fit()
             terminal.writeln('Welcome to pyxterm.js!')
             terminal.writeln('https://github.com/cs01/pyxterm.js')
+            terminal.writeln('')
+            terminal.writeln('You can copy with ctrl+shift+x')
+            terminal.writeln('You can paste with ctrl+shift+v')
+            terminal.writeln('')
 
             const tx = throttle((data) => {
               //console.log('send input to station:', data)
@@ -269,6 +275,43 @@
                 tx(data)
               }
             })
+
+            function customKeyEventHandler(e) {
+              if (e.type !== 'keydown') {
+                return true
+              }
+              if (e.ctrlKey && e.shiftKey) {
+                const key = e.key.toLowerCase()
+                if (key === 'v') {
+                  // ctrl+shift+v: paste whatever is in the clipboard
+                  navigator.clipboard.readText().then((toPaste) => {
+                    if (socket) {
+                      socket.emit('pty-input', {
+                        input: toPaste,
+                      })
+                    } else if (Edrys.module) {
+                      // send inputData from subRoles
+
+                      tx(toPaste)
+                    }
+                  })
+                  return false
+                } else if (key === 'c' || key === 'x') {
+                  // ctrl+shift+x: copy whatever is highlighted to clipboard
+
+                  // 'x' is used as an alternate to 'c' because ctrl+c is taken
+                  // by the terminal (SIGINT) and ctrl+shift+c is taken by the browser
+                  // (open devtools).
+                  // I'm not aware of ctrl+shift+x being used by anything in the terminal
+                  // or browser
+                  const toCopy = terminal.getSelection()
+                  navigator.clipboard.writeText(toCopy)
+                  terminal.focus()
+                  return false
+                }
+              }
+              return true
+            }
 
             const wait_ms = 50
             window.onresize = debounce(fitToScreen, wait_ms)

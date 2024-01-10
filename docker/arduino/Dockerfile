@@ -21,23 +21,6 @@ USER ${user}
 
 RUN arduino-cli upgrade && arduino-cli core update-index
 
-# install arduino-cli libraries
-RUN arduino-cli lib install \
-    "Adafruit Circuit Playground" \
-    "Adafruit NeoPixel" \
-    "Adafruit Unified Sensor" \
-    "Adafruit ZeroTimer Library" \
-    "ArduinoJson" \
-    "DHT sensor library" \
-    "FastLED" \
-    "Firmata" \
-    "LiquidCrystal" \
-    "SD" \
-    "Servo" \
-    "Stepper" \
-    "TFT" \
-    "WiFi"
-
 # install arduino-cli cores
 RUN arduino-cli core install arduino:avr
 #RUN arduino-cli core install arduino:esp32
@@ -54,6 +37,26 @@ RUN arduino-cli core install arduino:megaavr
 #RUN arduino-cli core install arduino:sam
 #RUN arduino-cli core install arduino:samd
 #RUN arduino-cli core install arduino:renesas_uno
+
+# install arduino-cli libraries
+RUN arduino-cli lib install \
+    "Adafruit Circuit Playground" \
+    "Adafruit NeoPixel" \
+    "Adafruit Unified Sensor" \
+    "Adafruit ZeroTimer Library" \
+    "ArduinoJson" \
+    "DHT sensor library" \
+    "FastLED" \
+    "Firmata" \
+    "LiquidCrystal" \
+    "LiquidCrystal_PCF8574" \
+    "NewPing" \
+    "SD" \
+    "Servo" \
+    "Stepper" \
+    "TFT" \
+    "WiFi"
+
 
 # ensure we are switched to user Switch to user we must not set group to make the configuration done above apply
 # !! if ${user} is not setup correctly the next line might result in group being root !!

@@ -68,7 +68,7 @@ def pty_input(data):
 
 @socketio.on("resize", namespace="/pty")
 def resize(data):
-    if app.config["fd"]:
+    if app.config["fd"] and "rows" in data and "cols" in data:
         logging.debug(f"Resizing window to {data['rows']}x{data['cols']}")
         set_winsize(app.config["fd"], data["rows"], data["cols"])
 

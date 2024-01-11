@@ -81,12 +81,7 @@
       </textarea>
     </div>
 
-    <div style="width: calc(100% + 10px); height: 380px" id="terminal"></div>
-
-    <p style="text-align: right; font-size: small">
-      built by <a href="https://chadsmith.dev">Chad Smith</a>
-      <a href="https://github.com/cs01">GitHub</a>
-    </p>
+    <div style="width: calc(100% + 10px); height: 400px" id="terminal"></div>
 
     <!-- xterm -->
     <script src="https://unpkg.com/xterm@4.11.0/lib/xterm.js"></script>
@@ -127,9 +122,14 @@
       function fitToScreen(dimensions) {
         if (fit && terminal) {
           fit.fit()
-          const dims = dimensions || {
+
+          let dims = {
             cols: terminal.cols,
             rows: terminal.rows,
+          }
+
+          if (dimensions?.cols && dimensions?.rows) {
+            dims = dimensions
           }
 
           // console.log("sending new dimensions to server's pty", dims);

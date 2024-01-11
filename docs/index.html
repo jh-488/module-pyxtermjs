@@ -38,7 +38,7 @@
     <script src="https://unpkg.com/vue@3"></script>
   </head>
 
-  <body style="max-width: 100%; padding-left: 0px">
+  <body style="max-width: 100%; padding-left: 0px; margin-bottom: 0px">
     <div id="app">
       <span style="font-size: 1.4em">pyxterm.js</span>
       <span style="font-size: small; margin-left: 2rem">
@@ -81,7 +81,7 @@
       </textarea>
     </div>
 
-    <div style="width: calc(100% + 10px); height: 400px" id="terminal"></div>
+    <div style="width: calc(100% + 10px); height: inherit" id="terminal"></div>
 
     <!-- xterm -->
     <script src="https://unpkg.com/xterm@4.11.0/lib/xterm.js"></script>
@@ -249,7 +249,7 @@
 
             terminal.open(document.getElementById('terminal'))
             fit.fit()
-            terminal.resize(12, 50)
+            terminal.resize(12, Math.round((window.innerHeight - 32) / 18.5))
             // console.log(`size: ${terminal.cols} columns, ${terminal.rows} rows`);
             fit.fit()
             terminal.writeln('Welcome to pyxterm.js!')

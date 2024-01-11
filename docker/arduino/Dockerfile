@@ -4,6 +4,15 @@ FROM crosslab/edrys_pyxtermjs:latest
 #ensure we are root for software install
 USER root
 
+# This is required to install serial-plotter.py
+RUN DEBIAN_FRONTEND=noninteractive pip3 install \
+    plotext \
+    pyserial
+
+COPY serial-plotter.py /usr/bin
+RUN chmod +x /usr/bin/serial-plotter.py
+
+# install arduino-cli dependencies
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     curl \
     make
@@ -56,7 +65,6 @@ RUN arduino-cli lib install \
     "Stepper" \
     "TFT" \
     "WiFi"
-
 
 # ensure we are switched to user Switch to user we must not set group to make the configuration done above apply
 # !! if ${user} is not setup correctly the next line might result in group being root !!

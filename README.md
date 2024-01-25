@@ -1,6 +1,6 @@
 # Edrys PyxTerm.js Module
 
-This module runs a full terminal within [edrys](https://github.com/edrys-org/edrys), an open remote teaching platform.
+This module runs a full terminal within [edrys-Lite](https://github.com/edrys-labs/edrys-Lite), an open remote teaching platform.
 It is based on [pyxterm.js](https://github.com/cs01/pyxtermjs) by Chad Smith.
 
 ![screenshot](./pyxtermjs.gif)

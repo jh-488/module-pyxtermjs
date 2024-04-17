@@ -50,6 +50,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y lua5.3
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install nodejs
 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y ipython3
+
 # get back to the default appuser
 USER appuser
 

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import argparse
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_cors import CORS
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room
 import pty
 import os
 import subprocess
+import signal
 import select
 import termios
 import struct
@@ -22,8 +23,10 @@ __version__ = "0.5.0.0"
 
 app = Flask(__name__, template_folder="../docs", static_folder=".", static_url_path="")
 app.config["SECRET_KEY"] = "secret!"
-app.config["fd"] = None
-app.config["child_pid"] = None
+app.config["fd"] = dict()
+app.config["child_pid"] = dict()
+app.config["tmp"] = dict()
+app.config["singleton"] = False
 
 socketio = SocketIO(app, cors_allowed_origins='*')
 
@@ -34,16 +37,18 @@ def set_winsize(fd, row, col, xpix=0, ypix=0):
     fcntl.ioctl(fd, termios.TIOCSWINSZ, winsize)
 
 
-def read_and_forward_pty_output():
+def read_and_forward_pty_output(id):
     max_read_bytes = 1024 * 20
     while True:
         socketio.sleep(0.01)
-        if app.config["fd"]:
+        if id in app.config["fd"]:
             timeout_sec = 0
-            (data_ready, _, _) = select.select([app.config["fd"]], [], [], timeout_sec)
+            (data_ready, _, _) = select.select([app.config["fd"][id]], [], [], timeout_sec)
             if data_ready:
-                output = os.read(app.config["fd"], max_read_bytes).decode(errors='ignore')
-                socketio.emit("pty-output", {"output": output}, namespace="/pty")
+                output = os.read(app.config["fd"][id], max_read_bytes).decode(errors='ignore')
+                socketio.emit("pty-output", {"output": output}, room=id, namespace="/pty")
+        else:
+            break
 
 
 @app.route("/")
@@ -61,23 +66,55 @@ def pty_input(data):
     """write to the child pty. The pty sees this as if you are typing in a real
     terminal.
     """
-    if app.config["fd"]:
+    id = "0" if app.config["singleton"] else request.sid
+    if app.config["fd"][id]:
         logging.debug("received input from browser: %s" % data["input"])
-        os.write(app.config["fd"], data["input"].encode())
+        os.write(app.config["fd"][id], data["input"].encode())
 
 
 @socketio.on("resize", namespace="/pty")
 def resize(data):
-    if app.config["fd"] and "rows" in data and "cols" in data:
+    id = "0" if app.config["singleton"] else request.sid
+    if app.config["fd"][id] and "rows" in data and "cols" in data:
         logging.debug(f"Resizing window to {data['rows']}x{data['cols']}")
-        set_winsize(app.config["fd"], data["rows"], data["cols"])
+        set_winsize(app.config["fd"][id], data["rows"], data["cols"])
 
+@socketio.on("disconnect", namespace="/pty")
+def disconnect():
+    logging.info("client disconnected "+ request.sid)
+    if not app.config["singleton"]:
+        id = request.sid
+        
+        if id in app.config["child_pid"]:
+            try:
+                pid = app.config["child_pid"][id]
+                os.kill(pid, signal.SIGTERM)
+                os.waitpid(pid, 0)
+                del app.config["child_pid"][id]
+                # Ensure the child process is reaped
+            except ProcessLookupError:
+                print("Process already terminated.")
+
+        if id in app.config["tmp"]:
+            del app.config["tmp"][id]
+        
+        if id in app.config["fd"]:
+            del app.config["fd"][id]
+            
+def handle_sigterm(signum, frame):
+    print("Child process: Received SIGTERM, exiting cleanly.")
+    os._exit(0)
 
 @socketio.on("connect", namespace="/pty")
 def connect():
     """new client connected"""
-    logging.info("new client connected")
-    if app.config["child_pid"]:
+    logging.info("new client connected " + request.sid)
+
+    id = "0" if app.config["singleton"] else request.sid
+
+    join_room(id, namespace='/pty')
+
+    if app.config["child_pid"].get(id):
         # already started child process, don't start another
         return
 
@@ -86,23 +123,23 @@ def connect():
     if child_pid == 0:
         while True:
             if (app.config["useTmp"]):
-                app.config["tmp"] = tempfile.mkdtemp()
+                app.config["tmp"][id] = tempfile.mkdtemp()
                 # this is the child process fork.
                 # anything printed here will show up in the pty, including the output
                 # of this subprocess
-                subprocess.run(app.config["cmd"], cwd=app.config["tmp"])
+                subprocess.run(app.config["cmd"], cwd=app.config["tmp"][id])
             else:
                 subprocess.run(app.config["cmd"])
     else:
         # this is the parent process fork.
         # store child fd and pid
-        app.config["fd"] = fd
-        app.config["child_pid"] = child_pid
+        app.config["fd"][id] = fd
+        app.config["child_pid"][id] = child_pid
         set_winsize(fd, 50, 50)
         cmd = " ".join(shlex.quote(c) for c in app.config["cmd"])
         # logging/print statements must go after this because... I have no idea why
         # but if they come before the background task never starts
-        socketio.start_background_task(target=read_and_forward_pty_output)
+        socketio.start_background_task(target=read_and_forward_pty_output, id=id)
 
         logging.info("child pid is " + child_pid)
         logging.info(
@@ -144,6 +181,12 @@ def main():
         help="use a temporary folder as base, which comes handy when using firejail",
     )
 
+    parser.add_argument(
+        "--singleton",
+        default="False",
+        help="use a single terminal for all clients",
+    )
+
     args = parser.parse_args()
     if args.version:
         print(__version__)
@@ -153,6 +196,8 @@ def main():
         "PYXTERM_CMD")] + shlex.split(args.cmd_args or os.environ.get("PYXTERM_CMD_ARGS") or "")
 
     app.config["useTmp"] = args.tmp or os.environ.get("PYXTERM_USE_TMP")
+
+    app.config["singleton"] = args.singleton == "True" or os.environ.get("PYXTERM_SINGLETON") == "True"
 
     if args.cors or os.environ.get("PYXTERM_CORS"):
         CORS(app)

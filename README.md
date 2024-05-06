@@ -94,10 +94,11 @@ $ docker run -it -p 5000:5000 crosslab/edrys_pyxtermjs_development:latest
 to start an entire development server with gcc, java, python, nodejs, etc. installed, or:
 
 ``` bash
-$ docker run -it -p 5000:5000 crosslab/edrys_pyxtermjs_arduino:latest \
+$ docker run -it -p 5000:5000 \
   --device=/dev/ttyACM0:/dev/ttyACM0 \
   --device-cgroup-rule='c 166:* rmv' \
-  --device-cgroup-rule='c 189:* rmv'
+  --device-cgroup-rule='c 189:* rmv' \
+  crosslab/edrys_pyxtermjs_arduino:latest
 ```
 
 to start a container with arduino support.

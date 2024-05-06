@@ -24,9 +24,10 @@ meta:
 
     <hr>
 
-    <code>docker run -it -p 5000:5000 crosslab/edrys_pyxtermjs_arduino
+    <code>docker run -it -p 5000:5000
     --device=/dev/ttyACM0:/dev/ttyACM0 --device-cgroup-rule='c 166:* rmv'
-    --device-cgroup-rule='c 189:* rmv'</code>
+    --device-cgroup-rule='c 189:* rmv'
+    crosslab/edrys_pyxtermjs_arduino </code>
   selfAssign: true
   defaultNumberOfRooms: 0
 members:
@@ -88,10 +89,11 @@ modules:
 
 
       ``` bash
-       $ docker run -it -p 5000:5000 crosslab/edrys_pyxtermjs_arduino \
+       $ docker run -it -p 5000:5000 \
           --device=/dev/ttyACM0:/dev/ttyACM0 \
           --device-cgroup-rule='c 166:* rmv' \
-          --device-cgroup-rule='c 189:* rmv'
+          --device-cgroup-rule='c 189:* rmv' \
+          crosslab/edrys_pyxtermjs_arduino
       ```
 
 

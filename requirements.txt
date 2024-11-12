@@ -27,3 +27,5 @@ python-socketio==5.4.0
 werkzeug==2.0.1
     # via flask
 eventlet==0.33.3
+
+trzsz==1.1.5

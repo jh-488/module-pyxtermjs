@@ -99,6 +99,7 @@
     var lastData = null
     const terminalElement = document.getElementById('terminal')
     let userInput = ""; // Store user input
+    let isAllowedToDownload = false; // Check if user is allowed to download file
 
     const DEFAULT_SERVER = 'http://localhost:5000/pty'
     const DEFAULT_SCRIPT = 'echo $CODE | base64 --decode'
@@ -296,14 +297,30 @@
 
           terminal.onData((data) => {
             //console.log("key pressed in browser:", data);
+
+            // Handle special user entries (upload, download, store)
             if (data === "\r") {
               if (userInput.trim() === "upload" && (Edrys.role === 'station' || Edrys.role === 'teacher')) {
                 fileInput.click();
+                userInput = "";
                 return;
-              } else if (userInput.trim() === "download") {
-                this.downloadFileFromSessionStorage();
+              } else if (userInput.startsWith("download")) {
+                const filename = userInput.split(" ")[1];
+
+                if (!filename) {
+                  Edrys.sendMessage('pty-output', "\r\nPlease provide a filename!!\r\n");
+                  userInput = "";
+                  return;
+                }
+
+                isAllowedToDownload = true;
+          
+                // Request file from server
+                Edrys.sendMessage('fetch-file', filename);
+
+                userInput = "";
                 return;
-              }
+              } 
 
               userInput = "";
             } else if (data === "\x7f" || data === "\b") {
@@ -403,52 +420,18 @@
           trzsz.uploadFiles(filesList)
             .then(() => {
               console.log("Upload successful");
-              this.storeFileInSessionStorage(filesList[0]);
             })
             .catch((err) => console.error("Upload failed:", err));
         },
 
-        // Store file in sessionStorage
-        storeFileInSessionStorage(file) {
-          return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onload = function (event) {
-              try {
-                const base64String = event.target.result.split(',')[1];
-
-                sessionStorage.clear();
-
-                sessionStorage.setItem('fileName', file.name);
-                sessionStorage.setItem('uploadedFile', base64String);
-
-                const uploadedFileData = JSON.stringify({
-                  name: file.name,
-                  content: base64String
-                });
-
-                Edrys.sendMessage('uploadedFile', uploadedFileData);
-
-                resolve();
-              } catch (err) {
-                reject(err);
-              }
-            };
-
-            reader.onerror = function (err) {
-              reject(err);
-            };
-
-            reader.readAsDataURL(file);
-          });
-        },
-
         // Download file from sessionStorage
-        downloadFileFromSessionStorage() {
-          const base64String = sessionStorage.getItem('uploadedFile');
-          const fileName = sessionStorage.getItem('fileName') || 'downloadedFile';
+        downloadFileFromSessionStorage(fileData) {
+          const parsedFileData = JSON.parse(fileData);
 
-          if (base64String) {
+          const fileName = parsedFileData.name;
+          const base64String = parsedFileData.content;
+
+          if (fileName) {
             const fileBlob = new Blob([Uint8Array.from(atob(base64String), c => c.charCodeAt(0))]);
             const url = URL.createObjectURL(fileBlob);
 
@@ -461,20 +444,12 @@
 
             // Clean up URL object to free up memory
             URL.revokeObjectURL(url);
-
+            
             terminal.write(`\r\n${fileName} downloaded\r\n`);
             trzsz.sendToServer("\x03");
           } else {
             terminal.write("\r\nNo file found to download.\r\n");
           }
-        },
-
-        // Set session storage data 
-        setSessionStorageData(data) {
-          const parsedData = JSON.parse(data);
-          sessionStorage.clear();
-          sessionStorage.setItem('fileName', parsedData.name);
-          sessionStorage.setItem('uploadedFile', parsedData.content);
         },
 
         connectUser() {
@@ -499,8 +474,13 @@
                 fitToScreen()
                 break
               }
-              case 'uploadedFile': {
-                self.setSessionStorageData(body);
+              case 'download-file': {
+                // Only download file for current user
+                if (isAllowedToDownload) {
+                  self.downloadFileFromSessionStorage(body);
+                  console.log("File downloaded");
+                  isAllowedToDownload = false;
+                }                
                 break;
               }
               case 'upload-files': {
@@ -533,6 +513,18 @@
             }
             lastData = data.output
           })
+
+          socket.on("fetch-file-response", (data) => {
+            const fileData = JSON.stringify({
+              name: data.name,
+              content: data.content
+            });
+            
+            if (Edrys.module) {
+              // Send file data to user
+              Edrys.sendMessage('download-file', fileData);
+            }
+          });
 
           socket.on('connect', () => {
             fitToScreen()
@@ -589,14 +581,23 @@
                   fitToScreen(data)
                   break
                 }
-                case 'uploadedFile': {
-                  self.setSessionStorageData(body);
+                case 'download-file': {
+                  // Only download file for current user
+                  if (isAllowedToDownload) {
+                    self.downloadFileFromSessionStorage(body);
+                    console.log("File downloaded");
+                    isAllowedToDownload = false;
+                  }                
                   break;
                 }
                 case 'upload-files': {
                   self.uploadFilesToTerminal(body);
                   break;
                 }
+                case 'fetch-file': {
+                  socket.emit('fetch-file', body);
+                  break;
+                }  
                 /*default: {
                       console.warn("unknown message (station) => ", from, subject, body)
                     }*/

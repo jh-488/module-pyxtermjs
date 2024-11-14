@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 from flask_socketio import SocketIO, join_room
 import pty
@@ -15,6 +15,7 @@ import shlex
 import logging
 import sys
 import tempfile
+import base64
 
 
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
@@ -71,7 +72,6 @@ def pty_input(data):
         logging.debug("received input from browser: %s" % data["input"])
         os.write(app.config["fd"][id], data["input"].encode())
 
-
 @socketio.on("resize", namespace="/pty")
 def resize(data):
     id = "0" if app.config["singleton"] else request.sid
@@ -111,42 +111,60 @@ def connect():
     logging.info("new client connected " + request.sid)
 
     id = "0" if app.config["singleton"] else request.sid
-
+    
     join_room(id, namespace='/pty')
+
+    # Create temp directory and log it here in the parent process
+    if id not in app.config["tmp"]:
+        app.config["tmp"][id] = tempfile.mkdtemp()
 
     if app.config["child_pid"].get(id):
         # already started child process, don't start another
         return
 
-    # create child process attached to a pty we can read from and write to
+    # Create child process attached to a pty
     (child_pid, fd) = pty.fork()
     if child_pid == 0:
-        while True:
-            if (app.config["useTmp"]):
-                app.config["tmp"][id] = tempfile.mkdtemp()
-                # this is the child process fork.
-                # anything printed here will show up in the pty, including the output
-                # of this subprocess
-                subprocess.run(app.config["cmd"], cwd=app.config["tmp"][id])
-            else:
-                subprocess.run(app.config["cmd"])
+        # This is the child process fork.
+        # It executes commands in the temp directory created above
+        subprocess.run(app.config["cmd"], cwd=app.config["tmp"][id])
     else:
-        # this is the parent process fork.
-        # store child fd and pid
+        # Parent process fork stores child fd and pid
         app.config["fd"][id] = fd
         app.config["child_pid"][id] = child_pid
         set_winsize(fd, 50, 50)
         cmd = " ".join(shlex.quote(c) for c in app.config["cmd"])
-        # logging/print statements must go after this because... I have no idea why
-        # but if they come before the background task never starts
+
         socketio.start_background_task(target=read_and_forward_pty_output, id=id)
 
-        logging.info("child pid is " + child_pid)
+        logging.info(f"child pid is {child_pid}")
         logging.info(
-            f"starting background task with command `{cmd}` to continously read "
+            f"starting background task with command `{cmd}` to continuously read "
             "and forward pty output to client"
         )
         logging.info("task started")
+
+@socketio.on("fetch-file", namespace="/pty")
+def fetch_file(filename):
+    id = "0" if app.config["singleton"] else request.sid
+
+    # Check if the user temp directory exists
+    if id not in app.config["tmp"]:
+        socketio.emit("pty-output", {"output": "\r\nUser temp directory not found\r\n"}, room=id, namespace="/pty")
+        return
+
+    file_path = os.path.join(app.config["tmp"][id], filename)
+    
+    if os.path.exists(file_path):
+        # Read the file and encode it in base64
+        with open(file_path, "rb") as file:
+            file_content = base64.b64encode(file.read()).decode('utf-8')
+        
+        # Emit the file data to the client
+        socketio.emit("fetch-file-response", {"name": filename, "content": file_content}, room=id, namespace="/pty")
+    else:
+        socketio.emit("pty-output", {"output": "\r\nFile not found\r\n"}, room=id, namespace="/pty")
+        logging.warning(f"File {filename} not found for client {id}")
 
 
 def main():

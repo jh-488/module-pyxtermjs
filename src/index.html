@@ -110,7 +110,9 @@
       sendToServer: (data) => {
         if (socket) {
           if (data instanceof Uint8Array) {
-            socket.emit('pty-input', base64js.fromByteArray(data))
+            socket.emit('pty-input', {
+              input: base64js.fromByteArray(data),
+            })
           } else {
             socket.emit('pty-input', {
               input: data,
@@ -298,7 +300,7 @@
           terminal.onData((data) => {
             //console.log("key pressed in browser:", data);
 
-            // Handle special user entries (upload, download, store)
+            // Handle special user entries (upload, download)
             if (data === "\r") {
               if (userInput.trim() === "upload" && (Edrys.role === 'station' || Edrys.role === 'teacher')) {
                 fileInput.click();
@@ -424,8 +426,8 @@
             .catch((err) => console.error("Upload failed:", err));
         },
 
-        // Download file from sessionStorage
-        downloadFileFromSessionStorage(fileData) {
+        // Download file 
+        downloadFile(fileData) {
           const parsedFileData = JSON.parse(fileData);
 
           const fileName = parsedFileData.name;
@@ -477,8 +479,7 @@
               case 'download-file': {
                 // Only download file for current user
                 if (isAllowedToDownload) {
-                  self.downloadFileFromSessionStorage(body);
-                  console.log("File downloaded");
+                  self.downloadFile(body);
                   isAllowedToDownload = false;
                 }                
                 break;
@@ -584,7 +585,7 @@
                 case 'download-file': {
                   // Only download file for current user
                   if (isAllowedToDownload) {
-                    self.downloadFileFromSessionStorage(body);
+                    self.downloadFile(body);
                     console.log("File downloaded");
                     isAllowedToDownload = false;
                   }                

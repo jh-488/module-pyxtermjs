@@ -141,7 +141,7 @@
           socket.emit('resize', dims)
         } else {
           try {
-            Edrys.sendMessage('resize', JSON.stringify(dims))
+            Edrys.sendMessage('resize', dims)
           } catch (e) { }
         }
       }
@@ -458,6 +458,7 @@
           const self = this
 
           Edrys.onMessage(({ from, subject, body }) => {
+            if (from === Edrys.liveUser.name) return
             //console.log('User got new message: ', subject, body)
             switch (subject) {
               case 'pty-output': {
@@ -466,9 +467,9 @@
                 break
               }
               case 'connect': {
-                if (body === 'true') {
+                if (body === true) {
                   self.status = true
-                } else if (body === 'false') {
+                } else if (body === false) {
                   self.status = false
                 } else {
                   self.status = null
@@ -531,7 +532,7 @@
             fitToScreen()
             self.status = true
             if (Edrys.module) {
-              Edrys.sendMessage('connect', 'true')
+              Edrys.sendMessage('connect', true)
             }
 
             // simply an starting enter to receive outputs
@@ -542,11 +543,12 @@
 
           socket.on('disconnect', () => {
             self.status = false
-            if (Edrys.module) Edrys.sendMessage('connect', 'false')
+            if (Edrys.module) Edrys.sendMessage('connect', false)
           })
 
           if (Edrys.module) {
             Edrys.onMessage(({ from, subject, body }) => {
+              if (from === Edrys.liveUser.name) return
               // console.log('Got new message: ', from, subject, JSON.stringify(body))
               switch (subject) {
                 case 'input_teacher': {
@@ -572,8 +574,8 @@
                   break
                 }
                 case 'join': {
-                  Edrys.sendMessage('connect', JSON.stringify(self.status))
-                  Edrys.sendMessage('pty-output', lastData)
+                  Edrys.sendMessage('connect', self.status, from)
+                  Edrys.sendMessage('pty-output', lastData, from)
                   break
                 }
 
@@ -607,12 +609,12 @@
 
             Edrys.onMessage(({ from, subject, body, module }) => {
               // console.log("Got new message: ", from, subject, body, module, Edrys.module.stationConfig?.execute)
-
+              if (from === Edrys.liveUser.name) return
               if (
                 subject === (Edrys.module.stationConfig?.execute || 'execute')
               ) {
                 try {
-                  let data = JSON.parse(body)
+                  let data = body
 
                   if (data.file) {
                     self.store(data.file)

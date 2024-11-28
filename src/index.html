@@ -141,7 +141,7 @@
           socket.emit('resize', dims)
         } else {
           try {
-            Edrys.sendMessage('resize', JSON.stringify(dims))
+            Edrys.sendMessage('resize', dims)
           } catch (e) { }
         }
       }
@@ -209,7 +209,7 @@
             program += '\n'
           }
 
-          if (Edrys.module)
+          if (true)
             Edrys.sendMessage(
               'input_' + Edrys.role,
               program.replace('$CODE', btoa(toUtf8(code)))
@@ -233,7 +233,7 @@
 
           //command += "clear\n"
 
-          if (Edrys.module) Edrys.sendMessage('input_' + Edrys.role, command)
+          if (Edrys.true) Edrys.sendMessage('input_' + Edrys.role, command)
         },
 
         initTerminal() {
@@ -316,13 +316,13 @@
                 }
 
                 isAllowedToDownload = true;
-          
+
                 // Request file from server
                 Edrys.sendMessage('fetch-file', filename);
 
                 userInput = "";
                 return;
-              } 
+              }
 
               userInput = "";
             } else if (data === "\x7f" || data === "\b") {
@@ -336,7 +336,7 @@
                 input: data,
               })*/
               trzsz.processTerminalInput(data)
-            } else if (Edrys.module) {
+            } else if (true) {
               // send inputData from subRoles
 
               tx(data)
@@ -371,7 +371,7 @@
                     socket.emit('pty-input', {
                       input: toPaste,
                     })
-                  } else if (Edrys.module) {
+                  } else if (true) {
                     // send inputData from subRoles
 
                     tx(toPaste)
@@ -446,7 +446,7 @@
 
             // Clean up URL object to free up memory
             URL.revokeObjectURL(url);
-            
+
             terminal.write(`\r\n${fileName} downloaded\r\n`);
             trzsz.sendToServer("\x03");
           } else {
@@ -466,9 +466,9 @@
                 break
               }
               case 'connect': {
-                if (body === 'true') {
+                if (body === true) {
                   self.status = true
-                } else if (body === 'false') {
+                } else if (body === false) {
                   self.status = false
                 } else {
                   self.status = null
@@ -481,7 +481,7 @@
                 if (isAllowedToDownload) {
                   self.downloadFile(body);
                   isAllowedToDownload = false;
-                }                
+                }
                 break;
               }
               case 'upload-files': {
@@ -509,7 +509,7 @@
             // console.log("new output received from server:", data.output);
             trzsz.processServerOutput(data.output)
             //terminal.write(data.output)
-            if (Edrys.module) {
+            if (true) {
               Edrys.sendMessage('pty-output', data.output)
             }
             lastData = data.output
@@ -520,8 +520,8 @@
               name: data.name,
               content: data.content
             });
-            
-            if (Edrys.module) {
+
+            if (true) {
               // Send file data to user
               Edrys.sendMessage('download-file', fileData);
             }
@@ -530,8 +530,8 @@
           socket.on('connect', () => {
             fitToScreen()
             self.status = true
-            if (Edrys.module) {
-              Edrys.sendMessage('connect', 'true')
+            if (true) {
+              Edrys.sendMessage('connect', true)
             }
 
             // simply an starting enter to receive outputs
@@ -542,10 +542,10 @@
 
           socket.on('disconnect', () => {
             self.status = false
-            if (Edrys.module) Edrys.sendMessage('connect', 'false')
+            if (true) Edrys.sendMessage('connect', false)
           })
 
-          if (Edrys.module) {
+          if (true) {
             Edrys.onMessage(({ from, subject, body }) => {
               // console.log('Got new message: ', from, subject, JSON.stringify(body))
               switch (subject) {
@@ -572,13 +572,13 @@
                   break
                 }
                 case 'join': {
-                  Edrys.sendMessage('connect', JSON.stringify(self.status))
-                  Edrys.sendMessage('pty-output', lastData)
+                  Edrys.sendMessage('connect', self.status, from)
+                  Edrys.sendMessage('pty-output', lastData, from)
                   break
                 }
 
                 case 'resize': {
-                  let data = JSON.parse(body)
+                  let data = body
                   fitToScreen(data)
                   break
                 }
@@ -588,7 +588,7 @@
                     self.downloadFile(body);
                     console.log("File downloaded");
                     isAllowedToDownload = false;
-                  }                
+                  }
                   break;
                 }
                 case 'upload-files': {
@@ -598,7 +598,7 @@
                 case 'fetch-file': {
                   socket.emit('fetch-file', body);
                   break;
-                }  
+                }
                 /*default: {
                       console.warn("unknown message (station) => ", from, subject, body)
                     }*/
@@ -612,7 +612,7 @@
                 subject === (Edrys.module.stationConfig?.execute || 'execute')
               ) {
                 try {
-                  let data = JSON.parse(body)
+                  let data = body
 
                   if (data.file) {
                     self.store(data.file)
@@ -635,7 +635,7 @@
     app.initTerminal()
 
     Edrys.onReady(() => {
-      console.log('Module is loaded!')
+      console.log('pyxtermjs is loaded!')
 
       //Edrys.onUpdate((e) =>
       //  console.warn('Something has changed in the class', e)
@@ -654,7 +654,18 @@
         Edrys.sendMessage('join', null)
       } else {
         app.connectUser()
-        Edrys.sendMessage('join', null)
+
+        function join() {
+          setTimeout(() => {
+            if (app.status === null) {
+              console.log('re-joining')
+              Edrys.sendMessage('join', null)
+              join()
+            }
+          }, 1000)
+        }
+
+        join()
       }
     })
 
